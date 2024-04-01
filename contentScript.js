@@ -23,10 +23,7 @@ chrome.storage.local.get({ enabled: true }, data => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.enabled !== undefined) {
     updateCommentsVisibility(message.enabled)
-    // Send an acknowledgment response
     sendResponse({ status: "Done" })
   }
-  // Return true to indicate that you will respond asynchronously
-  // This line is crucial if the operations inside the listener are asynchronous
   return true
 })

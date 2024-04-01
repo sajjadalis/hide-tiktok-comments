@@ -3,13 +3,25 @@
     "name": "Hide TikTok Comments",
     "version": "1.0",
     "description": "Automatically hides comments section on TikTok video pages.",
-    "permissions": ["activeTab"],
+    "permissions": ["activeTab", "storage"],
+    "action": {
+      "default_icon": {
+        "48": "icon-enabled.png"
+      },
+      "default_title": "Toggle Comments"
+    },
+    "background": {
+      "service_worker": "background.js"
+    },
     "content_scripts": [
       {
         "matches": ["*://*.tiktok.com/*"],
         "js": ["contentScript.js"],
         "run_at": "document_end"
       }
-    ]
+    ],
+    "icons": {
+      "48": "icon-enabled.png"
+    }
   }
   

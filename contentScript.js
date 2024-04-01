@@ -1,37 +1,32 @@
-function hideComments() {
-  const dialogs = document.querySelectorAll('div[role="dialog"]')
-  dialogs.forEach(dialog => {
-    const commentsDiv = Array.from(dialog.querySelectorAll("div")).find(div =>
-      div.className.includes("DivContentContainer")
-    )
-    if (commentsDiv) {
-      commentsDiv.style.display = "none"
+function updateCommentsVisibility(hide) {
+  const styleId = "hide-comments-style"
+  let styleElement = document.getElementById(styleId)
+
+  if (hide) {
+    if (!styleElement) {
+      styleElement = document.createElement("style")
+      styleElement.id = styleId
+      styleElement.innerText = `div[role="dialog"] div[class*="DivContentContainer"] { display: none !important; }`
+      document.head.appendChild(styleElement)
     }
-  })
-}
-
-function checkAndHideCommentsForVideoPage() {
-  const urlPath = window.location.pathname
-  if (urlPath.includes("/video/")) {
-    hideComments()
+  } else {
+    if (styleElement) {
+      styleElement.remove()
+    }
   }
 }
 
-// Initially check if the comments need to be hidden
-checkAndHideCommentsForVideoPage()
+chrome.storage.local.get({ enabled: true }, data => {
+  updateCommentsVisibility(data.enabled)
+})
 
-// Setup a MutationObserver to react to URL changes in SPA
-const observer = new MutationObserver((mutations, obs) => {
-  const newPath = window.location.pathname
-  if (newPath.includes("/video/")) {
-    hideComments()
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.enabled !== undefined) {
+    updateCommentsVisibility(message.enabled)
+    // Send an acknowledgment response
+    sendResponse({ status: "Done" })
   }
+  // Return true to indicate that you will respond asynchronously
+  // This line is crucial if the operations inside the listener are asynchronous
+  return true
 })
-
-observer.observe(document, {
-  subtree: true,
-  childList: true,
-})
-
-// Optional: Disconnect observer when not needed to improve performance
-// observer.disconnect();

@@ -1,28 +1,18 @@
-// This runs when the extension is installed or the browser starts, setting the default state.
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.get({ enabled: true }, data => {
-    if (data.enabled) {
-      chrome.storage.local.set({ enabled: true }) // Ensure enabled state is true by default
-      chrome.action.setIcon({ path: "icon-enabled.png" }) // Set to enabled icon by default
-    }
-  })
+  chrome.storage.local.set({ enabled: true }) // Set default state to enabled
+  updateIconBasedOnDomain()
 })
 
 chrome.runtime.onStartup.addListener(() => {
-  chrome.storage.local.get({ enabled: true }, data => {
-    updateIconForAllTabs(data.enabled) // Ensure correct icon on browser startup
-  })
+  updateIconBasedOnDomain() // Ensure correct icon on browser startup for all tabs
 })
 
 chrome.action.onClicked.addListener(tab => {
   chrome.storage.local.get({ enabled: true }, data => {
     const newState = !data.enabled
     chrome.storage.local.set({ enabled: newState }, () => {
-      chrome.action.setIcon({
-        path: newState ? "icon-enabled.png" : "icon-disabled.png",
-        tabId: tab.id,
-      })
       sendMessageWithRetry(tab.id, { enabled: newState })
+      updateIconForTab(tab) // Update icon based on the new state and tab URL
     })
   })
 })
@@ -46,29 +36,27 @@ function sendMessageWithRetry(tabId, message, retryCount = 0) {
   })
 }
 
-// Function to update the icon for all tabs
-function updateIconForAllTabs(enabled) {
-  const iconPath = enabled ? "icon-enabled.png" : "icon-disabled.png"
+function updateIconForTab(tab) {
+  chrome.storage.local.get({ enabled: true }, data => {
+    const iconPath = tab.url.includes("tiktok.com")
+      ? data.enabled
+        ? "icon-enabled.png"
+        : "icon-disabled.png"
+      : "icon-disabled.png"
+    chrome.action.setIcon({ path: iconPath, tabId: tab.id })
+  })
+}
+
+function updateIconBasedOnDomain() {
   chrome.tabs.query({}, tabs => {
     tabs.forEach(tab => {
-      chrome.action.setIcon({ path: iconPath, tabId: tab.id })
+      updateIconForTab(tab)
     })
   })
 }
 
-// Listen for tab updates to ensure the icon reflects the current state
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Perform the check only when the tab is fully loaded to avoid unnecessary calls
-  if (
-    changeInfo.status === "complete" &&
-    tab.url &&
-    tab.url.includes("tiktok.com")
-  ) {
-    chrome.storage.local.get({ enabled: true }, data => {
-      chrome.action.setIcon({
-        path: data.enabled ? "icon-enabled.png" : "icon-disabled.png",
-        tabId: tabId,
-      })
-    })
+  if (changeInfo.status === "complete" && tab.url) {
+    updateIconForTab(tab)
   }
 })
